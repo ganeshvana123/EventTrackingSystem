@@ -1,0 +1,36 @@
+services:
+  mongo-db:
+    image: mongo:latest
+    container_name: EventTrackingMongo_container
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpassword
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--username", "root", "--password", "rootpassword", "--eval", "db.runCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - EventTrackingSystem-network
+  event-service:
+    build: .
+    container_name: EventTrackingService_container
+    restart: always
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://root:rootpassword@mongo-db:27017/event_tracking_db?authSource=admin
+    depends_on:
+       mongo-db:
+          condition: service_healthy
+    networks:
+      - EventTrackingSystem-network
+networks:
+  EventTrackingSystem-network:
+volumes:
+  mongodb_data:
